@@ -232,7 +232,7 @@ def ruta_vuelo(icao24):
     now = int(time.time())
     begin = now - 24*3600
     
-    # Lista de aeropuertos mexicanos (78 principales)
+  
     aeropuertos = {
         "MMMX": {"lat": 19.4361, "lng": -99.0719}, # Ciudad de México - AICM
         "MMGL": {"lat": 20.5218, "lng": -103.3104}, # Guadalajara
