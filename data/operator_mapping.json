@@ -1,0 +1,27 @@
+{
+  "cargo_prefixes": [
+    "FDX",
+    "UPS",
+    "DHL",
+    "DHX",
+    "AMX",
+    "NCA",
+    "GEC",
+    "GTI",
+    "CLX",
+    "CVG"
+  ],
+  "commercial_prefixes": [
+    "AAL",
+    "DAL",
+    "UAL",
+    "KLM",
+    "SWA",
+    "AIC",
+    "IBE",
+    "AFR",
+    "BAW",
+    "KQ",
+    "ACA"
+  ]
+}
