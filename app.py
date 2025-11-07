@@ -318,7 +318,8 @@ def vuelos():
 
             # Persist latest info per aircraft (upsert) if DB available
             try:
-                if db and db_client:
+               
+                if db is not None: 
                     db.get_collection("flights").update_one({"icao24": estado[0]}, {"$set": vuelo}, upsert=True)
             except Exception as e:
                 logger.warning(f"Mongo write failed for {vuelo.get('icao24')}: {e}")
