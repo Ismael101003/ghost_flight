@@ -6,7 +6,7 @@ Este proyecto muestra las posiciones de vuelos en vivo dentro de un área delimi
 
 ## 💻 Componentes y Características
 
-  - `app.py` — La aplicación Flask principal. [cite\_start]Ahora incluye manejo de token OAuth2, clasificación de vuelos (`carga`/`comercial`), persistencia opcional en MongoDB, y utiliza `pyzabbix` para **enviar métricas al Zabbix Trapper**[cite: 1].
+  - `app.py` — La aplicación Flask principal.Ahora incluye manejo de token OAuth2, clasificación de vuelos (`carga`/`comercial`), persistencia opcional en MongoDB, y utiliza `pyzabbix` para **enviar métricas al Zabbix Trapper**.
       - Endpoints clave: `/vuelos`, `/vuelos/comerciales`, `/vuelos/carga`, `/ruta_vuelo/<icao24>`.
   - `collector.py` — Un script en segundo plano que consulta periódicamente OpenSky y actualiza los datos por aeronave en la colección `flights` de MongoDB.
   - `data/operator_mapping.json` — Archivo con prefijos de operadores utilizados para la clasificación de vuelos.
@@ -22,7 +22,7 @@ Estas variables deben definirse en tu terminal de PowerShell antes de ejecutar l
   - `OPENSKY_CLIENT_ID` y `OPENSKY_CLIENT_SECRET` — Credenciales OAuth del cliente OpenSky.
   - `MONGODB_URI` — Cadena de conexión de MongoDB Atlas (ej: `mongodb+srv://usuario:pass@cluster0/...`). [cite\_start]Habilita el almacenamiento persistente si se establece[cite: 1].
   - **`ZABBIX_SERVER`** — El Host o DNS de tu servidor Zabbix (ej: `smart-ibex.zabbix.cloud`).
-  - [cite\_start]**`ZABBIX_HOST_NAME`** — El nombre del Host configurado en Zabbix para recibir las métricas Trapper (debe ser **`Ghost Flight App`**)[cite: 1].
+  - [cite\_start]**`ZABBIX_HOST_NAME`** — El nombre del Host configurado en Zabbix para recibir las métricas Trapper (debe ser **`Ghost Flight App`**).
   - `COLLECT_INTERVAL` — Segundos entre las consultas del colector (por defecto 15).
 
 -----
@@ -67,8 +67,3 @@ $env:MONGODB_URI = "tu_uri_de_mongodb_atlas"
 
 -----
 
-## 📝 Notas y Próximos Pasos
-
-  - [cite\_start]**Monitoreo Completo:** La aplicación envía el conteo de vuelos (`flights.carga.count` y `flights.comercial.count`) a Zabbix para visualización y alertas[cite: 1].
-  - **Tasa de Peticiones:** El intervalo de actualización del mapa (`mapa.html`) debe ajustarse (ej: a 30 segundos) para evitar el error `429 TOO MANY REQUESTS` de OpenSky.
-  - Se recomienda agregar archivos Docker o servicios `systemd` para despliegue en producción del colector y la aplicación.
