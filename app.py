@@ -4,11 +4,17 @@ import time
 import os
 import logging
 import json
+from dotenv import load_dotenv
 
 try:
     from pymongo import MongoClient
 except Exception:
     MongoClient = None
+
+from gemini_service import GeminiService
+from elevenlabs_service import ElevenLabsService
+
+load_dotenv()
 
 app = Flask(__name__)
 logger = logging.getLogger(__name__)
@@ -49,17 +55,16 @@ db = None
 if MONGODB_URI and MongoClient is not None:
     try:
         db_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
-        # trigger server selection
-        db_client.server_info()
+        db_client.server_info()  # Test connection
         db = db_client.get_default_database()
-        logger.info("Connected to MongoDB")
+        logger.info("✅ Conectado a MongoDB para app.py.")
     except Exception as e:
-        logger.warning(f"Could not connect to MongoDB: {e}")
+        logger.warning(f"⚠️ No se pudo conectar a MongoDB: {e}")
         db_client = None
         db = None
 else:
     if MONGODB_URI and MongoClient is None:
-        logger.warning("pymongo not available; cannot use MongoDB even though MONGODB_URI is set")
+        logger.warning("⚠️ pymongo no está instalado.")
 
 # Zabbix/API settings (optional)
 ZABBIX_API = os.environ.get("ZABBIX_API")
@@ -81,6 +86,9 @@ except Exception as e:
     logger.warning(f"Could not load operator mapping: {e}")
 
 seen_cargo_flights = set()
+
+gemini_service = GeminiService()
+elevenlabs_service = ElevenLabsService()
 
 def obtener_token():
     if token_cache["access_token"] and token_cache["expires_at"] > time.time():
@@ -310,9 +318,8 @@ def vuelos():
 
             # Persist latest info per aircraft (upsert) if DB available
             try:
-                if db is not None:
-                    coll = db.get_collection("flights")
-                    coll.update_one({"icao24": vuelo["icao24"]}, {"$set": vuelo, "$currentDate": {"last_seen": True}}, upsert=True)
+                if db and db_client:
+                    db.get_collection("flights").update_one({"icao24": estado[0]}, {"$set": vuelo}, upsert=True)
             except Exception as e:
                 logger.warning(f"Mongo write failed for {vuelo.get('icao24')}: {e}")
 
@@ -438,18 +445,59 @@ def ruta_vuelo(icao24):
         origen = vuelo.get("estDepartureAirport")
         destino = vuelo.get("estArrivalAirport")
         
+        # Obtener el estado actual del vuelo de MongoDB (o simular)
+        current_flight_state = {}
+        if db is not None:
+            current_flight_state = db.get_collection("flights").find_one({"icao24": icao24}) or {}
+        
         # Imprime para verificar en consola
         print(f"Origen: {origen}, Destino: {destino}")
         
         origen_coords = aeropuertos.get(origen)
         destino_coords = aeropuertos.get(destino)
 
+        analysis = None
+        audio_url = None
+        
+        # 1. Llamar a Gemini con los datos combinados
+        if gemini_service.is_available():
+            flight_data_for_gemini = {
+                "callsign": vuelo.get("callsign", "N/A"),
+                "type": classify_flight(vuelo.get("callsign", "")),
+                "origin_country": current_flight_state.get("pais_origen") or current_flight_state.get("origin_country"),
+                "altitude": current_flight_state.get("altitud") or current_flight_state.get("altitude"),
+                "velocity": current_flight_state.get("velocidad") or current_flight_state.get("velocity"),
+                "heading": current_flight_state.get("direccion") or current_flight_state.get("heading"),
+                "departure": origen,
+                "arrival": destino,
+            }
+            
+            analysis = gemini_service.analyze_flight_pattern(flight_data_for_gemini)
+            
+            # 2. Llamar a ElevenLabs si el análisis fue exitoso
+            if analysis and elevenlabs_service.is_available():
+                audio_data = elevenlabs_service.generate_alert_audio(analysis, alert_type="info")
+                
+                # Guardar el audio y generar la URL pública
+                if audio_data:
+                    static_dir = os.path.join(app.root_path, 'static')
+                    os.makedirs(static_dir, exist_ok=True)
+                    audio_filename = f"analysis_{icao24}.mp3"
+                    audio_filepath = os.path.join(static_dir, audio_filename)
+                    
+                    with open(audio_filepath, 'wb') as f:
+                        f.write(audio_data)
+                        
+                    audio_url = f"/static/{audio_filename}"
+
         return jsonify({
             "origen": origen_coords,
             "destino": destino_coords,
             "callsign": vuelo.get("callsign", "N/A"),
             "estDepartureAirport": origen,
-            "estArrivalAirport": destino
+            "estArrivalAirport": destino,
+            "gemini_analysis": analysis,
+            "audio_url": audio_url
         })
     
     except requests.HTTPError as e:
@@ -465,10 +513,9 @@ def ruta_vuelo(icao24):
 def vuelos_comerciales():
     """Return commercial flights. Prefer stored data in MongoDB; otherwise call live API and filter."""
     try:
-        if db is not None:
-            coll = db.get_collection("flights")
-            docs = list(coll.find({"type": "comercial"}, {"_id": 0}))
-            return jsonify(docs), 200
+        if db and db_client:
+            docs = db.get_collection("flights").find({"type": "comercial"})
+            return jsonify(list(docs)), 200
 
         # fallback: call live /vuelos and filter
         token = obtener_token()
@@ -500,10 +547,9 @@ def vuelos_comerciales():
 def vuelos_carga():
     """Return cargo flights. Prefer stored data in MongoDB; otherwise call live API and filter."""
     try:
-        if db is not None:
-            coll = db.get_collection("flights")
-            docs = list(coll.find({"type": "carga"}, {"_id": 0}))
-            return jsonify(docs), 200
+        if db and db_client:
+            docs = db.get_collection("flights").find({"type": "carga"})
+            return jsonify(list(docs)), 200
 
         # fallback: call live /vuelos and filter
         token = obtener_token()
@@ -529,6 +575,344 @@ def vuelos_carga():
         return jsonify({"error": "Error al consultar OpenSky"}), 500
     except Exception as e:
         logger.error(f"Error in vuelos_carga: {e}")
+        return jsonify({"error": "Error interno"}), 500
+
+@app.route("/analyze/flight/<string:icao24>")
+def analyze_flight(icao24):
+    """Analiza un vuelo específico usando Gemini AI"""
+    try:
+        if not gemini_service.is_available():
+            return jsonify({"error": "Servicio de análisis no disponible. Configura GEMINI_API_KEY."}), 503
+        
+        # Buscar el vuelo en los datos actuales
+        if db and db_client:
+            flight = db.get_collection("flights").find_one({"icao24": icao24})
+        else:
+            return jsonify({"error": "Base de datos no disponible"}), 503
+        
+        if not flight:
+            return jsonify({"error": "Vuelo no encontrado"}), 404
+        
+        analysis = gemini_service.analyze_flight_pattern(flight)
+        
+        if analysis:
+            return jsonify({
+                "flight": flight,
+                "analysis": analysis,
+                "timestamp": int(time.time())
+            }), 200
+        else:
+            return jsonify({"error": "Error al analizar el vuelo"}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en analyze_flight: {e}")
+        return jsonify({"error": "Error interno"}), 500
+
+@app.route("/analyze/traffic")
+def analyze_traffic():
+    """Analiza patrones de tráfico actual usando Gemini AI"""
+    try:
+        if not gemini_service.is_available():
+            return jsonify({"error": "Servicio de análisis no disponible. Configura GEMINI_API_KEY."}), 503
+        
+        # Obtener vuelos actuales
+        if db and db_client:
+            flights = list(db.get_collection("flights").find())
+        else:
+            # Fallback: llamar al endpoint de vuelos
+            return jsonify({"error": "Base de datos no disponible"}), 503
+        
+        stats = {
+            "total": len(flights),
+            "cargo": sum(1 for f in flights if f.get('type') == 'carga'),
+            "commercial": sum(1 for f in flights if f.get('type') == 'comercial')
+        }
+        
+        analysis = gemini_service.analyze_traffic_pattern(flights, stats)
+        
+        if analysis:
+            return jsonify({
+                "stats": stats,
+                "analysis": analysis,
+                "timestamp": int(time.time())
+            }), 200
+        else:
+            return jsonify({"error": "Error al analizar patrones"}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en analyze_traffic: {e}")
+        return jsonify({"error": "Error interno"}), 500
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    """Chatbot para consultas sobre vuelos usando Gemini AI"""
+    from flask import request
+    
+    try:
+        if not gemini_service.is_available():
+            return jsonify({"error": "Servicio de chat no disponible. Configura GEMINI_API_KEY."}), 503
+        
+        data = request.get_json()
+        query = data.get('query', '')
+        
+        if not query:
+            return jsonify({"error": "Consulta vacía"}), 400
+        
+        # Obtener contexto actual
+        context = {}
+        if db and db_client:
+            flights = list(db.get_collection("flights").find())
+            context = {
+                "total_flights": len(flights),
+                "commercial_flights": sum(1 for f in flights if f.get('type') == 'comercial'),
+                "cargo_flights": sum(1 for f in flights if f.get('type') == 'carga'),
+                "recent_alerts": len(alerts_history[-10:]),
+                "last_update": time.strftime('%Y-%m-%d %H:%M:%S')
+            }
+        
+        response = gemini_service.chat_query(query, context)
+        
+        return jsonify({
+            "query": query,
+            "response": response,
+            "timestamp": int(time.time())
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error en chat: {e}")
+        return jsonify({"error": "Error interno"}), 500
+
+@app.route("/analyze/predict", methods=['GET'])
+def analyze_predict():
+    """Análisis predictivo de patrones de tráfico usando datos históricos y Gemini"""
+    try:
+        if not gemini_service.is_available():
+            return jsonify({
+                "error": "Análisis predictivo no disponible. Gemini API no configurada.",
+                "timestamp": int(time.time()),
+                "data_points": 0
+            }), 503
+        
+        # Obtener datos históricos de las últimas 24 horas
+        if db and db_client:
+            historical_data = list(db.get_collection("historical_data").find({"timestamp": {"$gte": now - 24*3600}}))
+            data_points = len(historical_data)
+        else:
+            # Si no hay MongoDB, usar datos actuales con múltiples muestras
+            historical_data = []
+            data_points = 0
+            logger.warning("MongoDB no disponible. Análisis predictivo limitado.")
+        
+        # Obtener datos actuales
+        current_flights = obtener_vuelos()
+        
+        # Preparar análisis para Gemini
+        analysis_prompt = f"""
+Eres un experto en análisis de tráfico aéreo y predicción de patrones.
+
+DATOS ACTUALES:
+- Total de vuelos: {len(current_flights)}
+- Vuelos comerciales: {sum(1 for f in current_flights if f.get('type') == 'comercial')}
+- Vuelos de carga: {sum(1 for f in current_flights if f.get('type') == 'carga')}
+- Hora actual: {time.strftime('%H:%M', time.localtime())}
+
+DATOS HISTÓRICOS:
+- Puntos de datos disponibles: {data_points}
+"""
+
+        if data_points > 0:
+            # Análisis por hora
+            hourly_stats = {}
+            for record in historical_data:
+                hour = time.strftime('%H', time.localtime(record['timestamp']))
+                if hour not in hourly_stats:
+                    hourly_stats[hour] = {'total': 0, 'cargo': 0, 'commercial': 0, 'count': 0}
+                
+                flights = record.get('flights', [])
+                hourly_stats[hour]['total'] += len(flights)
+                hourly_stats[hour]['cargo'] += sum(1 for f in flights if f.get('type') == 'carga')
+                hourly_stats[hour]['commercial'] += sum(1 for f in flights if f.get('type') == 'comercial')
+                hourly_stats[hour]['count'] += 1
+            
+            # Calcular promedios
+            avg_by_hour = {}
+            for hour, stats in hourly_stats.items():
+                if stats['count'] > 0:
+                    avg_by_hour[hour] = {
+                        'avg_total': stats['total'] / stats['count'],
+                        'avg_cargo': stats['cargo'] / stats['count'],
+                        'avg_commercial': stats['commercial'] / stats['count']
+                    }
+            
+            analysis_prompt += f"\n\nPATRONES HORARIOS (últimas 24h):\n"
+            for hour in sorted(avg_by_hour.keys()):
+                stats = avg_by_hour[hour]
+                analysis_prompt += f"- {hour}:00 - Promedio: {stats['avg_total']:.1f} vuelos (Carga: {stats['avg_cargo']:.1f}, Comercial: {stats['avg_commercial']:.1f})\n"
+            
+            # Detectar horas pico
+            peak_hours = sorted(avg_by_hour.items(), key=lambda x: x[1]['avg_total'], reverse=True)[:3]
+            analysis_prompt += f"\n\nHORAS PICO DETECTADAS:\n"
+            for hour, stats in peak_hours:
+                analysis_prompt += f"- {hour}:00 con promedio de {stats['avg_total']:.1f} vuelos\n"
+            
+            # Tendencias de carga
+            cargo_by_hour = [(hour, stats['avg_cargo']) for hour, stats in avg_by_hour.items()]
+            cargo_trend = "creciente" if len(cargo_by_hour) > 1 and cargo_by_hour[-1][1] > cargo_by_hour[0][1] else "decreciente"
+            analysis_prompt += f"\n\nTENDENCIA DE VUELOS DE CARGA: {cargo_trend}\n"
+        
+        analysis_prompt += """
+
+TAREA:
+Proporciona un análisis predictivo detallado que incluya:
+
+1. PREDICCIÓN DE TRÁFICO (próximas horas):
+   - ¿Se espera aumento o disminución del tráfico?
+   - ¿Cuántos vuelos se anticipan aproximadamente?
+
+2. HORARIOS PICO ESPERADOS:
+   - ¿Cuáles serán las próximas horas de mayor tráfico?
+   - Justifica basándote en los patrones históricos
+
+3. TENDENCIAS DE CARGA:
+   - ¿Cómo evolucionarán los vuelos de carga?
+   - ¿Hay patrones específicos a considerar?
+
+4. RECOMENDACIONES OPERATIVAS:
+   - ¿Qué acciones se sugieren para el monitoreo?
+   - ¿Hay algún patrón anómalo o preocupante?
+
+5. NIVEL DE CONFIANZA:
+   - Evalúa la confiabilidad de tu predicción (Alta/Media/Baja)
+   - Justifica tu evaluación
+
+Responde de manera clara, profesional y estructurada. Usa datos específicos cuando sea posible.
+"""
+
+        # Solicitar análisis a Gemini
+        prediction = gemini_service.generate_response(analysis_prompt)
+        
+        return jsonify({
+            "prediction": {
+                "raw_analysis": prediction
+            },
+            "timestamp": int(time.time()),
+            "data_points": data_points,
+            "current_flights": len(current_flights),
+            "has_historical_data": data_points > 0
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en análisis predictivo: {e}")
+        return jsonify({
+            "error": str(e),
+            "timestamp": int(time.time()),
+            "data_points": 0
+        }), 500
+
+@app.route("/alerts/<int:alert_id>/audio")
+def get_alert_audio(alert_id):
+    """Genera y devuelve audio para una alerta específica"""
+    from flask import Response
+    
+    try:
+        if not elevenlabs_service.is_available():
+            return jsonify({"error": "Servicio de voz no disponible. Configura ELEVENLABS_API_KEY."}), 503
+        
+        # Buscar la alerta
+        alert = next((a for a in alerts_history if a.get('id') == alert_id), None)
+        
+        if not alert:
+            return jsonify({"error": "Alerta no encontrada"}), 404
+        
+        # Crear narración
+        narration = elevenlabs_service.create_alert_narration(alert)
+        
+        # Generar audio
+        audio_data = elevenlabs_service.generate_alert_audio(
+            narration, 
+            alert.get('severity', 'info')
+        )
+        
+        if audio_data:
+            return Response(
+                audio_data,
+                mimetype="audio/mpeg",
+                headers={"Content-Disposition": f"attachment;filename=alert_{alert_id}.mp3"}
+            )
+        else:
+            return jsonify({"error": "Error al generar audio"}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en get_alert_audio: {e}")
+        return jsonify({"error": "Error interno"}), 500
+
+@app.route("/ai/status")
+def ai_status():
+    """Retorna el estado de los servicios de IA"""
+    return jsonify({
+        "gemini": {
+            "available": gemini_service.is_available(),
+            "configured": gemini_service.api_key is not None
+        },
+        "elevenlabs": {
+            "available": elevenlabs_service.is_available(),
+            "configured": elevenlabs_service.api_key is not None
+        }
+    }), 200
+
+def obtener_vuelos():
+    url = "https://opensky-network.org/api/states/all"
+    params = {
+        "lamin": LAT_MIN,
+        "lomin": LON_MIN,
+        "lamax": LAT_MAX,
+        "lomax": LON_MAX
+    }
+    
+    try:
+        token = obtener_token()
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "User-Agent": "MiAppDeVuelos/1.0"
+        }
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        vuelos = []
+        now_ts = int(time.time())
+        for estado in data.get("states", []):
+            lat = estado[6]
+            lon = estado[5]
+            if lat is None or lon is None:
+                continue
+
+            callsign = estado[1].strip() if estado[1] else ""
+            tipo = classify_flight(callsign)
+
+            vuelo = {
+                "icao24": estado[0],
+                "callsign": callsign if callsign else "N/A",
+                "origin_country": estado[2],
+                "latitude": lat,
+                "longitude": lon,
+                "altitude": estado[7],
+                "velocity": estado[9],
+                "heading": estado[10],
+                "type": tipo,
+                "fetched_at": now_ts,
+            }
+            vuelos.append(vuelo)
+        
+        return vuelos
+    
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 429:
+            return jsonify({"error": "Límite de peticiones alcanzado. Intenta más tarde."}), 429
+        print(f"Error HTTP al consultar OpenSky: {e}")
+        return jsonify({"error": "Error al consultar OpenSky"}), 500
+    except Exception as e:
+        print(f"Error general: {e}")
         return jsonify({"error": "Error interno"}), 500
 
 if __name__ == "__main__":

@@ -15,7 +15,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
     <!-- Leaflet JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+
     <style>
         :root {
             --primary: #0d6efd;
@@ -80,6 +82,9 @@
             color: var(--white);
             border-bottom: none;
             box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .sidebar-header h5 {
@@ -97,18 +102,37 @@
             font-size: 1.5rem;
         }
 
-        /* Added alert badge in header */
+        /* Added header buttons container */
+        .sidebar-header-buttons {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-left: auto;
+        }
+
+        .header-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.25rem;
+            transition: var(--transition);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
         .alert-badge {
             position: relative;
             cursor: pointer;
-            margin-left: auto;
-            padding: 0.5rem;
-            border-radius: 8px;
-            transition: var(--transition);
-        }
-
-        .alert-badge:hover {
-            background: rgba(255, 255, 255, 0.1);
         }
 
         .alert-badge .badge {
@@ -125,6 +149,38 @@
             text-align: center;
         }
 
+        /* Added tab navigation for sidebar views */
+        .sidebar-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-light);
+            padding: 0;
+            margin: 0;
+            background: var(--light);
+        }
+
+        .sidebar-tab {
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            background: var(--white);
+            border: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--secondary);
+            border-bottom: 3px solid transparent;
+            transition: var(--transition);
+        }
+
+        .sidebar-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .sidebar-tab:hover {
+            background: var(--light);
+        }
+
         /* Sidebar Content */
         .sidebar-content {
             flex: 1;
@@ -133,6 +189,11 @@
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
+            display: none;
+        }
+
+        .sidebar-content.active {
+            display: flex;
         }
 
         .sidebar-content::-webkit-scrollbar {
@@ -330,6 +391,148 @@
         .info-section i {
             flex-shrink: 0;
             margin-top: 2px;
+        }
+
+        /* Added chatbot styles */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            gap: 1rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+            border-radius: var(--radius);
+            background: var(--light);
+        }
+
+        .chat-message {
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 0.75rem;
+            animation: slideInUp 0.3s ease-out;
+        }
+
+        .chat-message.user {
+            justify-content: flex-end;
+        }
+
+        .chat-message.bot {
+            justify-content: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .message-bubble.user {
+            background: var(--primary);
+            color: white;
+        }
+
+        .message-bubble.bot {
+            background: var(--white);
+            color: var(--dark);
+            border: 1px solid var(--border-light);
+        }
+
+        .chat-input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+        }
+
+        .chat-send-btn {
+            padding: 0.75rem 1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .chat-send-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Added analysis panel styles */
+        .analysis-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .analysis-card {
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f2f9 100%);
+            padding: 1.25rem;
+            border-radius: var(--radius);
+            border-left: 4px solid var(--primary);
+        }
+
+        .analysis-card h6 {
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+        }
+
+        .analysis-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 200px;
+            margin-top: 1rem;
+        }
+
+        .prediction-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* ===== MAP CONTAINER ===== */
@@ -819,6 +1022,11 @@
             cursor: pointer;
         }
 
+        /* Added AI analysis section in modal */
+        .analysis-card h6 i {
+            margin-right: 0.5rem;
+        }
+
         /* Leaflet overrides */
         .leaflet-control-zoom,
         .leaflet-control-attribution {
@@ -924,13 +1132,27 @@
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h5><i class="bi bi-airplane-fill"></i> Ghost Flight</h5>
-                <!-- Added alert badge button -->
-                <div class="alert-badge" id="alertBadge" title="Ver Alertas">
-                    <i class="bi bi-bell-fill" style="font-size: 1.25rem;"></i>
-                    <span class="badge" id="alertCount">0</span>
+                <!-- Updated header buttons -->
+                <div class="sidebar-header-buttons">
+                    <button class="header-btn alert-badge" id="alertBadge" title="Ver Alertas">
+                        <i class="bi bi-bell-fill"></i>
+                        <span class="badge" id="alertCount">0</span>
+                    </button>
+                    <button class="header-btn" id="toggleChatBtn" title="Abrir Chat">
+                        <i class="bi bi-chat-dots-fill"></i>
+                    </button>
                 </div>
             </div>
-            <div class="sidebar-content">
+
+            <!-- Added tab navigation -->
+            <div class="sidebar-tabs">
+                <button class="sidebar-tab active" data-tab="stats">📊 Estadísticas</button>
+                <button class="sidebar-tab" data-tab="chat">💬 Chat IA</button>
+                <button class="sidebar-tab" data-tab="analysis">🔍 Análisis</button>
+            </div>
+
+            <!-- Stats Tab -->
+            <div class="sidebar-content active" id="statsContent">
                 <!-- Statistics -->
                 <div>
                     <h6 class="sidebar-section-title">Estadísticas en Vivo</h6>
@@ -972,6 +1194,39 @@
                         <i class="bi bi-info-circle-fill"></i>
                         <span>Haz clic en un avión para ver detalles. Los datos se actualizan cada 3 segundos.</span>
                     </small>
+                </div>
+            </div>
+
+            <!-- Added Chat Tab -->
+            <div class="sidebar-content" id="chatContent">
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages"></div>
+                    <div class="chat-input-group">
+                        <input type="text" class="chat-input" id="chatInput" placeholder="Haz una pregunta...">
+                        <button class="chat-send-btn" id="chatSendBtn">
+                            <i class="bi bi-send"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Added Analysis Tab -->
+            <div class="sidebar-content" id="analysisContent">
+                <div class="analysis-panel">
+                    <div class="analysis-card">
+                        <h6>📈 Análisis de Tráfico</h6>
+                        <p id="trafficAnalysis">Cargando análisis...</p>
+                    </div>
+                    <div class="analysis-card">
+                        <h6>🔮 Predicción</h6>
+                        <p id="trafficPrediction">Cargando predicción...</p>
+                    </div>
+                    <div class="analysis-card">
+                        <h6>📊 Gráficos</h6>
+                        <div class="chart-container">
+                            <canvas id="trafficChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1083,6 +1338,13 @@
                         <span class="label">Rumbo</span>
                         <span class="value" id="modalHeading">-</span>
                     </div>
+
+                    <!-- Added AI analysis section in modal -->
+                    <hr class="my-4" />
+                    <div class="analysis-card">
+                        <h6><i class="bi bi-lightbulb"></i> Análisis IA</h6>
+                        <p id="flightAIAnalysis" style="font-size: 0.85rem; margin: 0;">Cargando análisis...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1149,12 +1411,19 @@
                         </div>
                     </div>
 
+                    <!-- Added voice notifications toggle -->
                     <div class="config-group">
                         <div class="config-group-title">Notificaciones</div>
                         <div class="config-switch">
                             <label>Habilitar sonido en alertas</label>
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="soundToggle" checked>
+                            </div>
+                        </div>
+                        <div class="config-switch">
+                            <label>Habilitar voz ElevenLabs (IA)</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="voiceToggle" checked>
                             </div>
                         </div>
                     </div>
@@ -1222,7 +1491,138 @@
 
         let alertsConfig = {};
         let lastAlertCheck = Date.now();
-        const alertSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBjOP1/DTgDAIIF238uqoZBsQXrXq7ahUFAhGn97yuWcfBz6R1vDOeisFLYDO8dySQQoSZrnt6aBQFAw+n9/zu2kfBkOQ1/DPfSwFLILQ8d6SSQoTZbbr7J9PFApAn+HyvWkfB0CP1/DPfS0GLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1u/OfSwF');
+        const alertSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBjOP1/DTgDAIIF238uqoZBsQXrXq7ahUFAhGn97yuWcfBz6R1vDOeisFLYDO8dySQQoSZrnt6aBQFAw+n9/zu2kfBkOQ1/DPfSwFLILQ8d6SSQoTZbbr7J9PFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1u/OfSwF');
+
+        document.querySelectorAll('.sidebar-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.sidebar-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(tabName + 'Content').classList.add('active');
+                
+                if (tabName === 'analysis') {
+                    loadAnalysisData();
+                }
+            });
+        });
+
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const chatSendBtn = document.getElementById('chatSendBtn');
+
+        chatSendBtn.addEventListener('click', async () => {
+            const query = chatInput.value.trim();
+            if (!query) return;
+
+            // Add user message to chat
+            addChatMessage(query, 'user');
+            chatInput.value = '';
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+
+                const data = await response.json();
+                if (data.response) {
+                    addChatMessage(data.response, 'bot');
+                    if (alertsConfig.voice_enabled !== false) {
+                        playVoiceResponse(data.response);
+                    }
+                }
+            } catch (error) {
+                console.error('[v0] Chat error:', error);
+                addChatMessage('Error al procesar la pregunta', 'bot');
+            }
+        });
+
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') chatSendBtn.click();
+        });
+
+        function addChatMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${sender}`;
+            messageDiv.innerHTML = `<div class="message-bubble ${sender}">${text}</div>`;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function playVoiceResponse(text) {
+            try {
+                const response = await fetch('/analyze/traffic', { method: 'GET' }); // Assuming this endpoint provides audio data
+                const data = await response.json();
+                // If audio_url or similar is provided, play it
+                if (data.audio_url) {
+                    new Audio(data.audio_url).play();
+                }
+            } catch (error) {
+                console.error('[v0] Voice error:', error);
+            }
+        }
+
+        let trafficChart = null;
+
+        async function loadAnalysisData() {
+            try {
+                // Load traffic analysis
+                const analysisResp = await fetch('/analyze/traffic');
+                const analysisData = await analysisResp.json();
+                
+                if (analysisData.analysis) {
+                    document.getElementById('trafficAnalysis').textContent = analysisData.analysis;
+                }
+
+                // Load prediction
+                const predResp = await fetch('/analyze/predict');
+                const predData = await predResp.json();
+                
+                if (predData.prediction) {
+                    document.getElementById('trafficPrediction').textContent = 
+                        predData.prediction.raw_analysis || 'Análisis en progreso...';
+                }
+
+                // Update chart with current stats
+                updateTrafficChart(analysisData.stats);
+            } catch (error) {
+                console.error('[v0] Analysis error:', error);
+            }
+        }
+
+        function updateTrafficChart(stats) {
+            const ctx = document.getElementById('trafficChart');
+            if (!ctx) return;
+
+            if (trafficChart) {
+                trafficChart.destroy();
+            }
+
+            trafficChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Comercial', 'Carga'],
+                    datasets: [{
+                        data: [stats.commercial, stats.cargo],
+                        backgroundColor: ['#0dcaf0', '#ffc107'],
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
 
         toggleSidebarBtn.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
@@ -1244,7 +1644,7 @@
                 alertsConfig = await response.json();
                 updateConfigModal();
             } catch (error) {
-                console.error('Error loading alerts config:', error);
+                console.error('[v0] Error loading alerts config:', error);
             }
         }
 
@@ -1253,13 +1653,9 @@
                 const response = await fetch('/alerts');
                 const alerts = await response.json();
                 
-                // Update badge count
                 document.getElementById('alertCount').textContent = alerts.length;
-                
-                // Render alerts in panel
                 renderAlertsPanel(alerts);
                 
-                // Show new alerts as toasts
                 const newAlerts = alerts.filter(a => a.timestamp * 1000 > lastAlertCheck);
                 newAlerts.forEach(alert => showToast(alert));
                 
@@ -1290,22 +1686,36 @@
             
             document.getElementById('toastContainer').appendChild(toast);
             
-            // Play sound if enabled
-            if (alertsConfig.sound_enabled) {
-                alertSound.play().catch(e => console.log('[v0] Could not play sound:', e));
+            if (alertsConfig.voice_enabled !== false) {
+                playAlertVoice(alert);
             }
             
-            // Auto remove after 5 seconds
+            if (alertsConfig.sound_enabled) {
+                alertSound.play().catch(e => console.log('[v0] Sound error:', e));
+            }
+            
             setTimeout(() => {
                 toast.style.opacity = '0';
                 setTimeout(() => toast.remove(), 300);
             }, 5000);
             
-            // Remove on click
             toast.querySelector('.close').addEventListener('click', () => {
                 toast.style.opacity = '0';
                 setTimeout(() => toast.remove(), 300);
             });
+        }
+
+        async function playAlertVoice(alert) {
+            try {
+                const response = await fetch(`/alerts/${alert.id}/audio`);
+                if (response.ok) {
+                    const audioBlob = await response.blob();
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    new Audio(audioUrl).play();
+                }
+            } catch (error) {
+                console.error('[v0] Voice alert error:', error);
+            }
         }
 
         function renderAlertsPanel(alerts) {
@@ -1356,6 +1766,7 @@
             document.getElementById('abnormalSpeedToggle').checked = alertsConfig.abnormal_speed_enabled || false;
             document.getElementById('abnormalSpeedThreshold').value = alertsConfig.abnormal_speed_threshold || 500;
             document.getElementById('soundToggle').checked = alertsConfig.sound_enabled !== false;
+            document.getElementById('voiceToggle').checked = alertsConfig.voice_enabled !== false; // Added for voice toggle
         }
 
         // Alert panel controls
@@ -1396,7 +1807,8 @@
                 low_altitude_threshold: parseInt(document.getElementById('lowAltitudeThreshold').value),
                 abnormal_speed_enabled: document.getElementById('abnormalSpeedToggle').checked,
                 abnormal_speed_threshold: parseInt(document.getElementById('abnormalSpeedThreshold').value),
-                sound_enabled: document.getElementById('soundToggle').checked
+                sound_enabled: document.getElementById('soundToggle').checked,
+                voice_enabled: document.getElementById('voiceToggle').checked // Added for voice toggle
             };
             
             try {
@@ -1493,7 +1905,7 @@
                 actualizarVisibilidadVuelos();
                 
             } catch (error) {
-                console.error('Error cargando vuelos:', error);
+                console.error('[v0] Error loading flights:', error);
             }
         }
 
@@ -1538,6 +1950,18 @@
             document.getElementById('modalAltitude').textContent = (vuelo.altitude || 'N/A') + ' ft';
             document.getElementById('modalVelocity').textContent = (vuelo.velocity || 'N/A') + ' knots';
             document.getElementById('modalHeading').textContent = (vuelo.heading || 'N/A') + '°';
+
+            try {
+                const analysisResp = await fetch(`/analyze/flight/${vuelo.icao24}`);
+                if (analysisResp.ok) {
+                    const analysisData = await analysisResp.json();
+                    if (analysisData.analysis) {
+                        document.getElementById('flightAIAnalysis').textContent = analysisData.analysis;
+                    }
+                }
+            } catch (error) {
+                console.error('[v0] Error loading flight analysis:', error);
+            }
 
             // Mostrar modal
             const flightModal = new bootstrap.Modal(document.getElementById('flightModal'));
