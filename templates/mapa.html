@@ -97,6 +97,34 @@
             font-size: 1.5rem;
         }
 
+        /* Added alert badge in header */
+        .alert-badge {
+            position: relative;
+            cursor: pointer;
+            margin-left: auto;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: var(--transition);
+        }
+
+        .alert-badge:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .alert-badge .badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: var(--danger);
+            color: white;
+            font-size: 0.65rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 10px;
+            font-weight: 700;
+            min-width: 18px;
+            text-align: center;
+        }
+
         /* Sidebar Content */
         .sidebar-content {
             flex: 1;
@@ -377,6 +405,286 @@
             display: flex;
         }
 
+        /* Added toast notification styles */
+        .toast-container {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-width: 400px;
+        }
+
+        .toast-notification {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            border-left: 4px solid var(--primary);
+            animation: slideInRight 0.3s ease-out;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .toast-notification:hover {
+            transform: translateX(-4px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+        }
+
+        .toast-notification.danger {
+            border-left-color: var(--danger);
+        }
+
+        .toast-notification.warning {
+            border-left-color: var(--warning);
+        }
+
+        .toast-notification.info {
+            border-left-color: var(--primary-light);
+        }
+
+        .toast-notification .icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .toast-notification.danger .icon {
+            color: var(--danger);
+        }
+
+        .toast-notification.warning .icon {
+            color: var(--warning);
+        }
+
+        .toast-notification.info .icon {
+            color: var(--primary-light);
+        }
+
+        .toast-notification .content {
+            flex: 1;
+        }
+
+        .toast-notification .content .title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+            color: var(--dark);
+        }
+
+        .toast-notification .content .message {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .toast-notification .close {
+            font-size: 1.25rem;
+            color: var(--secondary);
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: var(--transition);
+        }
+
+        .toast-notification .close:hover {
+            color: var(--dark);
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Added alert panel styles */
+        .alert-panel {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 420px;
+            height: 100vh;
+            background: var(--white);
+            box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+            transform: translateX(100%);
+            transition: var(--transition);
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .alert-panel.active {
+            transform: translateX(0);
+        }
+
+        .alert-panel-header {
+            padding: 1.5rem;
+            background: linear-gradient(135deg, var(--danger) 0%, #b02a37 100%);
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .alert-panel-header h5 {
+            font-weight: 700;
+            font-size: 1.15rem;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .alert-panel-header .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: var(--transition);
+        }
+
+        .alert-panel-header .close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .alert-panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .alert-panel-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .alert-panel-content::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 3px;
+        }
+
+        .alert-item {
+            background: var(--light);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid var(--primary);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .alert-item:hover {
+            transform: translateX(-4px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .alert-item.danger {
+            border-left-color: var(--danger);
+            background: #fff5f5;
+        }
+
+        .alert-item.warning {
+            border-left-color: var(--warning);
+            background: #fffbf0;
+        }
+
+        .alert-item.info {
+            border-left-color: var(--primary-light);
+            background: #f0f9ff;
+        }
+
+        .alert-item-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .alert-item-header .icon {
+            font-size: 1.25rem;
+        }
+
+        .alert-item.danger .icon {
+            color: var(--danger);
+        }
+
+        .alert-item.warning .icon {
+            color: var(--warning);
+        }
+
+        .alert-item.info .icon {
+            color: var(--primary-light);
+        }
+
+        .alert-item-header .title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            flex: 1;
+        }
+
+        .alert-item-header .time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .alert-item-message {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .alert-panel-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            flex: 1;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-light);
+            color: var(--secondary);
+        }
+
+        .btn-outline:hover {
+            background: var(--light);
+        }
+
+        .btn-primary-small {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary-small:hover {
+            background: var(--primary-dark);
+        }
+
         /* ===== MODAL ===== */
         .modal-header {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
@@ -447,6 +755,70 @@
             letter-spacing: 0.3px;
         }
 
+        /* Added alert config modal styles */
+        .config-group {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .config-group:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .config-group-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            color: var(--dark);
+        }
+
+        .config-switch {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+
+        .config-switch label {
+            font-size: 0.9rem;
+            color: var(--secondary);
+            margin: 0;
+        }
+
+        .config-input {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .config-input label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            min-width: 120px;
+        }
+
+        .config-input input[type="number"] {
+            flex: 1;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .form-switch {
+            min-height: 1.5rem;
+        }
+
+        .form-switch .form-check-input {
+            width: 3rem;
+            height: 1.5rem;
+            cursor: pointer;
+        }
+
         /* Leaflet overrides */
         .leaflet-control-zoom,
         .leaflet-control-attribution {
@@ -504,6 +876,16 @@
             .toggle-sidebar-btn {
                 display: flex !important;
             }
+
+            .alert-panel {
+                width: 100%;
+            }
+
+            .toast-container {
+                left: 1rem;
+                right: 1rem;
+                max-width: none;
+            }
         }
 
         /* Animations */
@@ -542,6 +924,11 @@
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h5><i class="bi bi-airplane-fill"></i> Ghost Flight</h5>
+                <!-- Added alert badge button -->
+                <div class="alert-badge" id="alertBadge" title="Ver Alertas">
+                    <i class="bi bi-bell-fill" style="font-size: 1.25rem;"></i>
+                    <span class="badge" id="alertCount">0</span>
+                </div>
             </div>
             <div class="sidebar-content">
                 <!-- Statistics -->
@@ -598,6 +985,33 @@
                 <i class="bi bi-arrow-left"></i> Volver
             </button>
             <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- Added toast notifications container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Added alert panel -->
+    <div class="alert-panel" id="alertPanel">
+        <div class="alert-panel-header">
+            <h5><i class="bi bi-bell-fill"></i> Alertas</h5>
+            <button class="close-btn" id="closeAlertPanel">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <div class="alert-panel-content" id="alertPanelContent">
+            <!-- Alerts will be dynamically added here -->
+        </div>
+        <div class="alert-panel-footer">
+            <button class="btn-small btn-outline" id="clearAlertsBtn">
+                <i class="bi bi-trash"></i> Limpiar
+            </button>
+            <button class="btn-small btn-outline" id="exportAlertsBtn">
+                <i class="bi bi-download"></i> Exportar
+            </button>
+            <button class="btn-small btn-primary-small" id="configAlertsBtn">
+                <i class="bi bi-gear"></i> Configurar
+            </button>
         </div>
     </div>
 
@@ -674,6 +1088,85 @@
         </div>
     </div>
 
+    <!-- Added alert configuration modal -->
+    <div class="modal fade" id="alertConfigModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-gear-fill"></i> Configuración de Alertas</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="config-group">
+                        <div class="config-group-title">Vuelos de Carga</div>
+                        <div class="config-switch">
+                            <label>Alertar cuando entre un vuelo de carga</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="cargoEntryToggle" checked>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-group">
+                        <div class="config-group-title">Alto Tráfico</div>
+                        <div class="config-switch">
+                            <label>Alertar con alto número de vuelos</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="highCountToggle" checked>
+                            </div>
+                        </div>
+                        <div class="config-input">
+                            <label>Umbral de vuelos:</label>
+                            <input type="number" id="highCountThreshold" value="10" min="1" max="100">
+                        </div>
+                    </div>
+
+                    <div class="config-group">
+                        <div class="config-group-title">Altitud Baja</div>
+                        <div class="config-switch">
+                            <label>Alertar con altitud baja</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="lowAltitudeToggle" checked>
+                            </div>
+                        </div>
+                        <div class="config-input">
+                            <label>Umbral de altitud (ft):</label>
+                            <input type="number" id="lowAltitudeThreshold" value="3000" min="0" max="10000" step="100">
+                        </div>
+                    </div>
+
+                    <div class="config-group">
+                        <div class="config-group-title">Velocidad Anormal</div>
+                        <div class="config-switch">
+                            <label>Alertar con velocidad anormal</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="abnormalSpeedToggle" checked>
+                            </div>
+                        </div>
+                        <div class="config-input">
+                            <label>Umbral velocidad (knots):</label>
+                            <input type="number" id="abnormalSpeedThreshold" value="500" min="0" max="1000" step="10">
+                        </div>
+                    </div>
+
+                    <div class="config-group">
+                        <div class="config-group-title">Notificaciones</div>
+                        <div class="config-switch">
+                            <label>Habilitar sonido en alertas</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="soundToggle" checked>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveConfigBtn">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Leaflet JS -->
@@ -727,6 +1220,10 @@
         const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
         const sidebar = document.getElementById('sidebar');
 
+        let alertsConfig = {};
+        let lastAlertCheck = Date.now();
+        const alertSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBjOP1/DTgDAIIF238uqoZBsQXrXq7ahUFAhGn97yuWcfBz6R1vDOeisFLYDO8dySQQoSZrnt6aBQFAw+n9/zu2kfBkOQ1/DPfSwFLILQ8d6SSQoTZbbr7J9PFApAn+HyvWkfB0CP1/DPfS0GLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1+/PfS0FLoHO8d2RSwkRZLbq66hSFApBnuDxv2ogBkKQ1u/OfSwF');
+
         toggleSidebarBtn.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
         });
@@ -739,6 +1236,185 @@
         document.getElementById('filterCargo').addEventListener('change', (e) => {
             filterCargo = e.target.checked;
             actualizarVisibilidadVuelos();
+        });
+
+        async function loadAlertsConfig() {
+            try {
+                const response = await fetch('/alerts/config');
+                alertsConfig = await response.json();
+                updateConfigModal();
+            } catch (error) {
+                console.error('Error loading alerts config:', error);
+            }
+        }
+
+        async function loadAlerts() {
+            try {
+                const response = await fetch('/alerts');
+                const alerts = await response.json();
+                
+                // Update badge count
+                document.getElementById('alertCount').textContent = alerts.length;
+                
+                // Render alerts in panel
+                renderAlertsPanel(alerts);
+                
+                // Show new alerts as toasts
+                const newAlerts = alerts.filter(a => a.timestamp * 1000 > lastAlertCheck);
+                newAlerts.forEach(alert => showToast(alert));
+                
+                lastAlertCheck = Date.now();
+            } catch (error) {
+                console.error('[v0] Error loading alerts:', error);
+            }
+        }
+
+        function showToast(alert) {
+            const toast = document.createElement('div');
+            toast.className = `toast-notification ${alert.severity}`;
+            
+            const iconMap = {
+                danger: 'bi-exclamation-triangle-fill',
+                warning: 'bi-exclamation-circle-fill',
+                info: 'bi-info-circle-fill'
+            };
+            
+            toast.innerHTML = `
+                <i class="bi ${iconMap[alert.severity]} icon"></i>
+                <div class="content">
+                    <div class="title">${alert.title}</div>
+                    <div class="message">${alert.message}</div>
+                </div>
+                <i class="bi bi-x close"></i>
+            `;
+            
+            document.getElementById('toastContainer').appendChild(toast);
+            
+            // Play sound if enabled
+            if (alertsConfig.sound_enabled) {
+                alertSound.play().catch(e => console.log('[v0] Could not play sound:', e));
+            }
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+            
+            // Remove on click
+            toast.querySelector('.close').addEventListener('click', () => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            });
+        }
+
+        function renderAlertsPanel(alerts) {
+            const container = document.getElementById('alertPanelContent');
+            
+            if (alerts.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">No hay alertas</div>';
+                return;
+            }
+            
+            container.innerHTML = alerts.reverse().map(alert => {
+                const iconMap = {
+                    danger: 'bi-exclamation-triangle-fill',
+                    warning: 'bi-exclamation-circle-fill',
+                    info: 'bi-info-circle-fill'
+                };
+                
+                const timeAgo = formatTimeAgo(alert.timestamp);
+                
+                return `
+                    <div class="alert-item ${alert.severity}">
+                        <div class="alert-item-header">
+                            <i class="bi ${iconMap[alert.severity]} icon"></i>
+                            <span class="title">${alert.title}</span>
+                            <span class="time">${timeAgo}</span>
+                        </div>
+                        <div class="alert-item-message">${alert.message}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function formatTimeAgo(timestamp) {
+            const seconds = Math.floor(Date.now() / 1000 - timestamp);
+            
+            if (seconds < 60) return 'Hace ' + seconds + 's';
+            if (seconds < 3600) return 'Hace ' + Math.floor(seconds / 60) + 'm';
+            if (seconds < 86400) return 'Hace ' + Math.floor(seconds / 3600) + 'h';
+            return 'Hace ' + Math.floor(seconds / 86400) + 'd';
+        }
+
+        function updateConfigModal() {
+            document.getElementById('cargoEntryToggle').checked = alertsConfig.cargo_entry_enabled || false;
+            document.getElementById('highCountToggle').checked = alertsConfig.high_count_enabled || false;
+            document.getElementById('highCountThreshold').value = alertsConfig.high_count_threshold || 10;
+            document.getElementById('lowAltitudeToggle').checked = alertsConfig.low_altitude_enabled || false;
+            document.getElementById('lowAltitudeThreshold').value = alertsConfig.low_altitude_threshold || 3000;
+            document.getElementById('abnormalSpeedToggle').checked = alertsConfig.abnormal_speed_enabled || false;
+            document.getElementById('abnormalSpeedThreshold').value = alertsConfig.abnormal_speed_threshold || 500;
+            document.getElementById('soundToggle').checked = alertsConfig.sound_enabled !== false;
+        }
+
+        // Alert panel controls
+        document.getElementById('alertBadge').addEventListener('click', () => {
+            document.getElementById('alertPanel').classList.add('active');
+        });
+
+        document.getElementById('closeAlertPanel').addEventListener('click', () => {
+            document.getElementById('alertPanel').classList.remove('active');
+        });
+
+        document.getElementById('clearAlertsBtn').addEventListener('click', async () => {
+            if (confirm('¿Deseas limpiar todas las alertas?')) {
+                try {
+                    await fetch('/alerts/clear', { method: 'POST' });
+                    loadAlerts();
+                } catch (error) {
+                    console.error('[v0] Error clearing alerts:', error);
+                }
+            }
+        });
+
+        document.getElementById('exportAlertsBtn').addEventListener('click', () => {
+            window.location.href = '/alerts/export';
+        });
+
+        document.getElementById('configAlertsBtn').addEventListener('click', () => {
+            const modal = new bootstrap.Modal(document.getElementById('alertConfigModal'));
+            modal.show();
+        });
+
+        document.getElementById('saveConfigBtn').addEventListener('click', async () => {
+            const newConfig = {
+                cargo_entry_enabled: document.getElementById('cargoEntryToggle').checked,
+                high_count_enabled: document.getElementById('highCountToggle').checked,
+                high_count_threshold: parseInt(document.getElementById('highCountThreshold').value),
+                low_altitude_enabled: document.getElementById('lowAltitudeToggle').checked,
+                low_altitude_threshold: parseInt(document.getElementById('lowAltitudeThreshold').value),
+                abnormal_speed_enabled: document.getElementById('abnormalSpeedToggle').checked,
+                abnormal_speed_threshold: parseInt(document.getElementById('abnormalSpeedThreshold').value),
+                sound_enabled: document.getElementById('soundToggle').checked
+            };
+            
+            try {
+                const response = await fetch('/alerts/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newConfig)
+                });
+                
+                if (response.ok) {
+                    alertsConfig = newConfig;
+                    bootstrap.Modal.getInstance(document.getElementById('alertConfigModal')).hide();
+                    alert('Configuración guardada exitosamente');
+                }
+            } catch (error) {
+                console.error('[v0] Error saving config:', error);
+                alert('Error al guardar la configuración');
+            }
         });
 
         function actualizarVisibilidadVuelos() {
@@ -924,8 +1600,14 @@
             cargarVuelos();
         });
 
+        loadAlertsConfig();
+        loadAlerts();
+        
+        // Initial load and updates
         cargarVuelos();
-        setInterval(cargarVuelos, 30000);
+        setInterval(cargarVuelos, 3000);
+        
+        setInterval(loadAlerts, 3000);
     </script>
 </body>
 </html>

@@ -3,6 +3,7 @@ import requests
 import time
 import os
 import logging
+import json
 
 try:
     from pymongo import MongoClient
@@ -20,13 +21,25 @@ LON_MIN = -99.5
 LON_MAX = -98.8
 
 # Credenciales OAuth para acceso a la API (preferir variables de entorno)
-CLIENT_ID = os.environ.get("OPENSKY_CLIENT_ID", "kevinisrael-api-client")
-CLIENT_SECRET = os.environ.get("OPENSKY_CLIENT_SECRET", "p44mjMYSEu0DVmwTM73SFKkKAJo7q1Tb")
+CLIENT_ID = os.environ.get("OPENSKY_CLIENT_ID", "pop-api-client")
+CLIENT_SECRET = os.environ.get("OPENSKY_CLIENT_SECRET", "nBLFkW00mznAUsbmcJvEgAr88msF82WT")
 
 # Cache para token y expiración
 token_cache = {
     "access_token": None,
     "expires_at": 0,
+}
+
+alerts_history = []
+alerts_config = {
+    "cargo_entry_enabled": True,
+    "high_count_enabled": True,
+    "high_count_threshold": 10,
+    "low_altitude_enabled": True,
+    "low_altitude_threshold": 3000,
+    "abnormal_speed_enabled": True,
+    "abnormal_speed_threshold": 500,
+    "sound_enabled": True
 }
 
 # MongoDB setup (optional). Set MONGODB_URI in env to enable persistent storage.
@@ -58,8 +71,6 @@ OPERATOR_MAP = {"cargo_prefixes": [], "commercial_prefixes": []}
 try:
     mapping_path = os.path.join(os.path.dirname(__file__), "data", "operator_mapping.json")
     if os.path.exists(mapping_path):
-        import json
-
         with open(mapping_path, "r", encoding="utf-8") as fh:
             OPERATOR_MAP = json.load(fh)
             # normalize to upper-case
@@ -68,6 +79,8 @@ try:
             logger.info("Loaded operator mapping for classification")
 except Exception as e:
     logger.warning(f"Could not load operator mapping: {e}")
+
+seen_cargo_flights = set()
 
 def obtener_token():
     if token_cache["access_token"] and token_cache["expires_at"] > time.time():
@@ -124,6 +137,102 @@ def classify_flight(callsign: str) -> str:
 
     # Default to 'comercial' if nothing matched
     return "comercial"
+
+def check_alerts(vuelos):
+    """Check flight data against alert rules and generate alerts"""
+    new_alerts = []
+    
+    # Count cargo and total flights
+    count_cargo = sum(1 for v in vuelos if v.get("type") == "carga")
+    count_total = len(vuelos)
+    
+    # Alert: New cargo flight entry
+    if alerts_config["cargo_entry_enabled"]:
+        for vuelo in vuelos:
+            if vuelo.get("type") == "carga" and vuelo.get("icao24") not in seen_cargo_flights:
+                seen_cargo_flights.add(vuelo.get("icao24"))
+                alert = {
+                    "id": int(time.time() * 1000),
+                    "type": "cargo_entry",
+                    "title": "Vuelo de Carga Detectado",
+                    "message": f"Nuevo vuelo de carga {vuelo.get('callsign', 'N/A')} ha entrado en el área",
+                    "severity": "warning",
+                    "timestamp": int(time.time()),
+                    "flight_data": {
+                        "callsign": vuelo.get("callsign"),
+                        "icao24": vuelo.get("icao24"),
+                        "altitude": vuelo.get("altitude")
+                    }
+                }
+                new_alerts.append(alert)
+    
+    # Alert: High count of flights
+    if alerts_config["high_count_enabled"] and count_total > alerts_config["high_count_threshold"]:
+        alert = {
+            "id": int(time.time() * 1000) + 1,
+            "type": "high_count",
+            "title": "Alto Tráfico Aéreo",
+            "message": f"Se detectaron {count_total} vuelos en el área (umbral: {alerts_config['high_count_threshold']})",
+            "severity": "info",
+            "timestamp": int(time.time()),
+            "flight_data": {
+                "total": count_total,
+                "cargo": count_cargo
+            }
+        }
+        # Only add if not recently added
+        if not any(a.get("type") == "high_count" for a in alerts_history[-5:]):
+            new_alerts.append(alert)
+    
+    # Alert: Low altitude flights
+    if alerts_config["low_altitude_enabled"]:
+        for vuelo in vuelos:
+            if vuelo.get("altitude") and vuelo.get("altitude") < alerts_config["low_altitude_threshold"]:
+                alert = {
+                    "id": int(time.time() * 1000) + 2,
+                    "type": "low_altitude",
+                    "title": "Altitud Baja Detectada",
+                    "message": f"Vuelo {vuelo.get('callsign', 'N/A')} a {vuelo.get('altitude')} ft (umbral: {alerts_config['low_altitude_threshold']} ft)",
+                    "severity": "danger",
+                    "timestamp": int(time.time()),
+                    "flight_data": {
+                        "callsign": vuelo.get("callsign"),
+                        "icao24": vuelo.get("icao24"),
+                        "altitude": vuelo.get("altitude")
+                    }
+                }
+                # Only add if not recently added for this flight
+                if not any(a.get("flight_data", {}).get("icao24") == vuelo.get("icao24") and a.get("type") == "low_altitude" for a in alerts_history[-10:]):
+                    new_alerts.append(alert)
+    
+    # Alert: Abnormal speed
+    if alerts_config["abnormal_speed_enabled"]:
+        for vuelo in vuelos:
+            if vuelo.get("velocity") and vuelo.get("velocity") > alerts_config["abnormal_speed_threshold"]:
+                alert = {
+                    "id": int(time.time() * 1000) + 3,
+                    "type": "abnormal_speed",
+                    "title": "Velocidad Anormal",
+                    "message": f"Vuelo {vuelo.get('callsign', 'N/A')} a {vuelo.get('velocity')} knots (umbral: {alerts_config['abnormal_speed_threshold']} knots)",
+                    "severity": "warning",
+                    "timestamp": int(time.time()),
+                    "flight_data": {
+                        "callsign": vuelo.get("callsign"),
+                        "icao24": vuelo.get("icao24"),
+                        "velocity": vuelo.get("velocity")
+                    }
+                }
+                if not any(a.get("flight_data", {}).get("icao24") == vuelo.get("icao24") and a.get("type") == "abnormal_speed" for a in alerts_history[-10:]):
+                    new_alerts.append(alert)
+    
+    # Add new alerts to history
+    alerts_history.extend(new_alerts)
+    
+    # Keep only last 100 alerts
+    if len(alerts_history) > 100:
+        del alerts_history[:-100]
+    
+    return new_alerts
 
 
 def send_zabbix_metric(metric_name: str, value):
@@ -207,6 +316,8 @@ def vuelos():
             except Exception as e:
                 logger.warning(f"Mongo write failed for {vuelo.get('icao24')}: {e}")
 
+        check_alerts(vuelos)
+
         # Optional: send metrics to Zabbix (counts)
         try:
             count_comercial = sum(1 for v in vuelos if v.get("type") == "comercial")
@@ -227,12 +338,54 @@ def vuelos():
         print(f"Error general: {e}")
         return jsonify({"error": "Error interno"}), 500
 
+@app.route("/alerts")
+def get_alerts():
+    """Return recent alerts"""
+    return jsonify(alerts_history[-20:]), 200
+
+@app.route("/alerts/config")
+def get_alerts_config():
+    """Return current alert configuration"""
+    return jsonify(alerts_config), 200
+
+@app.route("/alerts/config", methods=["POST"])
+def update_alerts_config():
+    """Update alert configuration"""
+    from flask import request
+    try:
+        new_config = request.get_json()
+        if new_config:
+            alerts_config.update(new_config)
+            return jsonify({"success": True, "config": alerts_config}), 200
+        return jsonify({"error": "No data provided"}), 400
+    except Exception as e:
+        logger.error(f"Error updating alerts config: {e}")
+        return jsonify({"error": "Error updating configuration"}), 500
+
+@app.route("/alerts/clear", methods=["POST"])
+def clear_alerts():
+    """Clear alerts history"""
+    alerts_history.clear()
+    seen_cargo_flights.clear()
+    return jsonify({"success": True}), 200
+
+@app.route("/alerts/export")
+def export_alerts():
+    """Export alerts to JSON"""
+    from flask import Response
+    json_data = json.dumps(alerts_history, indent=2)
+    return Response(
+        json_data,
+        mimetype="application/json",
+        headers={"Content-Disposition": f"attachment;filename=alerts_export_{int(time.time())}.json"}
+    )
+
 @app.route("/ruta_vuelo/<string:icao24>")
 def ruta_vuelo(icao24):
     now = int(time.time())
     begin = now - 24*3600
     
-  
+    # Lista de aeropuertos mexicanos (78 principales)
     aeropuertos = {
         "MMMX": {"lat": 19.4361, "lng": -99.0719}, # Ciudad de México - AICM
         "MMGL": {"lat": 20.5218, "lng": -103.3104}, # Guadalajara
