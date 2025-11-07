@@ -13,11 +13,11 @@ app = Flask(__name__)
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-# Coordenadas aproximadas para México
-LAT_MIN = 14.0
-LAT_MAX = 33.0
-LON_MIN = -118.0
-LON_MAX = -86.0
+# Coordenadas aproximadas para CDMX área
+LAT_MIN = 19.0
+LAT_MAX = 20.2
+LON_MIN = -99.5
+LON_MAX = -98.8
 
 # Credenciales OAuth para acceso a la API (preferir variables de entorno)
 CLIENT_ID = os.environ.get("OPENSKY_CLIENT_ID", "kevinisrael-api-client")

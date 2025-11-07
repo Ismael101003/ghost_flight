@@ -2,63 +2,709 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
-    <title>Mapa de vuelos en México</title>
+    <title>Ghost Flight - Mapa de Vuelos en Tiempo Real</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <!-- Leaflet JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
-        /* Estilos del mapa y botón */
-        #map {
-            height: 100vh;
-            width: 100%;
+        :root {
+            --primary: #0d6efd;
+            --primary-dark: #0b5ed7;
+            --primary-light: #0dcaf0;
+            --secondary: #6c757d;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --success: #198754;
+            --dark: #1a1a2e;
+            --light: #f8f9ff;
+            --white: #ffffff;
+            --border-light: #e9ecef;
+            --text-muted: #6c757d;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.12);
+            --radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        #backButton {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 1000;
-            background: white;
-            border: 1px solid #ccc;
-            padding: 8px 12px;
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--light);
+            overflow: hidden;
+        }
+
+        /* Main layout */
+        .main-container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 360px;
+            background: var(--white);
+            border-right: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 16px rgba(0, 0, 0, 0.06);
+            transition: var(--transition);
+            z-index: 999;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-360px);
+        }
+
+        /* Sidebar Header */
+        .sidebar-header {
+            padding: 2rem 1.5rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--white);
+            border-bottom: none;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2);
+        }
+
+        .sidebar-header h5 {
+            margin: 0;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.35rem;
+            letter-spacing: -0.5px;
+        }
+
+        .sidebar-header i {
+            font-size: 1.5rem;
+        }
+
+        /* Sidebar Content */
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .sidebar-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar-content::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 3px;
+        }
+
+        .sidebar-content::-webkit-scrollbar-thumb:hover {
+            background: #bbb;
+        }
+
+        /* Stats Section Title */
+        .sidebar-section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        /* Stats Cards */
+        .stats-card {
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f2f9 100%);
+            padding: 1.25rem;
+            border-radius: var(--radius);
+            border-left: 4px solid var(--primary);
+            transition: var(--transition);
             cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stats-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stats-card.commercial {
+            border-left-color: var(--primary-light);
+        }
+
+        .stats-card.commercial .number {
+            color: var(--primary-light);
+        }
+
+        .stats-card.cargo {
+            border-left-color: var(--warning);
+            background: linear-gradient(135deg, #fffbf0 0%, #fff8e6 100%);
+        }
+
+        .stats-card.cargo .number {
+            color: var(--warning);
+        }
+
+        .stats-card.total {
+            border-left-color: var(--success);
+            background: linear-gradient(135deg, #f0fdf4 0%, #f0fdf4 100%);
+        }
+
+        .stats-card.total .number {
+            color: var(--success);
+        }
+
+        .stats-card h6 {
+            font-size: 0.8rem;
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stats-card .number {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            position: relative;
+            z-index: 1;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        /* Filter Section */
+        .filter-section {
+            margin-top: 0.5rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .filter-section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--secondary);
+            margin-bottom: 1rem;
+        }
+
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .filter-checkbox:hover {
+            background: var(--light);
+        }
+
+        .filter-checkbox input[type="checkbox"] {
+            width: 1.2rem;
+            height: 1.2rem;
+            cursor: pointer;
+            accent-color: var(--primary);
+            flex-shrink: 0;
+        }
+
+        .filter-checkbox label {
+            margin: 0;
+            cursor: pointer;
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .badge {
+            font-weight: 600;
+            font-size: 0.75rem;
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-commercial {
+            background: linear-gradient(135deg, #0dcaf0 0%, #0a58ca 100%);
+            color: white;
+        }
+
+        .badge-cargo {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            color: #000;
+        }
+
+        /* Info section */
+        .info-section {
+            padding: 1rem;
+            background: var(--light);
+            border-radius: var(--radius);
+            border-left: 3px solid var(--primary);
+        }
+
+        .info-section h6 {
+            color: var(--secondary);
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+            letter-spacing: 0.3px;
+        }
+
+        .info-section small {
+            color: var(--text-muted);
+            line-height: 1.5;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .info-section i {
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        /* ===== MAP CONTAINER ===== */
+        .map-container {
+            flex: 1;
+            position: relative;
+            background: #e8eaf6;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Toggle Sidebar Button */
+        .toggle-sidebar-btn {
+            position: absolute;
+            top: 1.25rem;
+            left: 1.25rem;
+            z-index: 1000;
+            background: var(--white);
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            transition: var(--transition);
+            color: var(--primary);
+            font-size: 1.25rem;
+        }
+
+        .toggle-sidebar-btn:hover {
+            background: var(--primary);
+            color: var(--white);
+            transform: scale(1.05);
+        }
+
+        /* Back Button */
+        .back-btn {
+            position: absolute;
+            top: 5.75rem;
+            left: 1.25rem;
+            z-index: 1000;
+            background: var(--white);
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            padding: 0.65rem 1.25rem;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
             display: none;
-            border-radius: 4px;
-            font-weight: bold;
+            font-weight: 600;
+            color: var(--primary);
+            transition: var(--transition);
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .back-btn:hover {
+            background: var(--primary);
+            color: var(--white);
+            transform: translateX(-4px);
+        }
+
+        .back-btn.active {
+            display: flex;
+        }
+
+        /* ===== MODAL ===== */
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--white);
+            border: none;
+            padding: 1.5rem;
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+            opacity: 0.7;
+            transition: var(--transition);
+        }
+
+        .modal-header .btn-close:hover {
+            opacity: 1;
+        }
+
+        .modal-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .modal-content {
+            border: none;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            background: var(--white);
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-item .label {
+            font-weight: 600;
+            color: var(--secondary);
+            font-size: 0.9rem;
+        }
+
+        .info-item .value {
+            color: var(--dark);
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .info-item .value.code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            background: var(--light);
+            padding: 0.35rem 0.65rem;
+            border-radius: 6px;
+            letter-spacing: 0.3px;
+        }
+
+        /* Leaflet overrides */
+        .leaflet-control-zoom,
+        .leaflet-control-attribution {
+            background: var(--white) !important;
+            border-radius: var(--radius) !important;
+            box-shadow: var(--shadow-md) !important;
+            border: 1px solid var(--border-light) !important;
+        }
+
+        .leaflet-control-zoom-in,
+        .leaflet-control-zoom-out {
+            background: var(--white) !important;
+            color: var(--primary) !important;
+            border-bottom: 1px solid var(--border-light) !important;
+            transition: var(--transition) !important;
+        }
+
+        .leaflet-control-zoom-in:hover,
+        .leaflet-control-zoom-out:hover {
+            background: var(--primary) !important;
+            color: var(--white) !important;
+        }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: var(--radius) !important;
+            box-shadow: var(--shadow-md) !important;
+            border: 1px solid var(--border-light) !important;
+        }
+
+        .leaflet-popup-content {
+            font-size: 0.9rem !important;
+            color: var(--dark) !important;
+        }
+
+        .leaflet-popup-tip {
+            background: var(--white) !important;
+            border-top: 1px solid var(--border-light) !important;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                width: 100%;
+                max-width: 360px;
+                height: 100vh;
+                left: 0;
+                top: 0;
+            }
+
+            .sidebar.collapsed {
+                transform: translateX(-100%);
+            }
+
+            .toggle-sidebar-btn {
+                display: flex !important;
+            }
+        }
+
+        /* Animations */
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .sidebar-header {
+            animation: slideInDown 0.4s ease-out;
+        }
+
+        .stats-card {
+            animation: slideInDown 0.4s ease-out;
+        }
+
+        .stats-card:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .stats-card:nth-child(3) {
+            animation-delay: 0.2s;
         }
     </style>
 </head>
 <body>
 
-    <div id="map"></div>
-    <button id="backButton">&larr; Vista General</button>
+    <div class="main-container">
+        <!-- ===== SIDEBAR ===== -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h5><i class="bi bi-airplane-fill"></i> Ghost Flight</h5>
+            </div>
+            <div class="sidebar-content">
+                <!-- Statistics -->
+                <div>
+                    <h6 class="sidebar-section-title">Estadísticas en Vivo</h6>
+                    <div class="stats-card commercial">
+                        <h6>Vuelos Comerciales</h6>
+                        <div class="number" id="totalCommercial">0</div>
+                    </div>
+                    <div class="stats-card cargo">
+                        <h6>Vuelos de Carga</h6>
+                        <div class="number" id="totalCargo">0</div>
+                    </div>
+                    <div class="stats-card total">
+                        <h6>Total en Línea</h6>
+                        <div class="number" id="totalFlights">0</div>
+                    </div>
+                </div>
 
+                <!-- Filters -->
+                <div class="filter-section">
+                    <h6 class="filter-section-title">Filtros</h6>
+                    <div class="filter-checkbox">
+                        <input type="checkbox" id="filterCommercial" checked />
+                        <label for="filterCommercial">
+                            <span class="badge badge-commercial">Comerciales</span>
+                        </label>
+                    </div>
+                    <div class="filter-checkbox">
+                        <input type="checkbox" id="filterCargo" checked />
+                        <label for="filterCargo">
+                            <span class="badge badge-cargo">Carga</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Info section -->
+                <div class="info-section">
+                    <h6>Información</h6>
+                    <small>
+                        <i class="bi bi-info-circle-fill"></i>
+                        <span>Haz clic en un avión para ver detalles. Los datos se actualizan cada 3 segundos.</span>
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== MAP CONTAINER ===== -->
+        <div class="map-container">
+            <button class="toggle-sidebar-btn" id="toggleSidebarBtn" title="Alternar panel">
+                <i class="bi bi-list"></i>
+            </button>
+            <button class="back-btn" id="backButton">
+                <i class="bi bi-arrow-left"></i> Volver
+            </button>
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- ===== FLIGHT DETAILS MODAL ===== -->
+    <div class="modal fade" id="flightModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-airplane-circle-fill"></i> Detalles del Vuelo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <span class="label">Callsign</span>
+                                <span class="value" id="modalCallsign">-</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <span class="label">Tipo de Vuelo</span>
+                                <span class="value" id="modalType">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <span class="label">País de Origen</span>
+                                <span class="value" id="modalCountry">-</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <span class="label">ICAO24</span>
+                                <span class="value code" id="modalIcao24">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <span class="label">Latitud</span>
+                                <span class="value" id="modalLatitude">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Longitud</span>
+                                <span class="value" id="modalLongitude">-</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <span class="label">Altitud</span>
+                                <span class="value" id="modalAltitude">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Velocidad</span>
+                                <span class="value" id="modalVelocity">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="label">Rumbo</span>
+                        <span class="value" id="modalHeading">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script>
-        // --- 1. Configuración del Mapa e Iconos ---
+        const centerLat = 19.4361;
+        const centerLng = -99.0719;
         
-        const centerLat = 23.6345;
-        const centerLng = -102.5528;
-        
-        const map = L.map('map').setView([centerLat, centerLng], 5);
+        const map = L.map('map').setView([centerLat, centerLng], 11);
         
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 18,
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        // Icono de avión
-        const airplaneIcon = L.icon({
+        // Íconos para aviones
+        const commercialIcon = L.icon({
             iconUrl: 'https://cdn-icons-png.flaticon.com/512/8111/8111822.png',
             iconSize: [32, 32],
             iconAnchor: [16, 16],
             popupAnchor: [0, -16]
         });
 
-        // Icono de aeropuerto
+        const cargoIcon = L.icon({
+            iconUrl: 'https://i.ibb.co/ZzTXSjH4/avion-carga1.png',
+            iconSize: [32, 32],
+            iconAnchor: [16, 16],
+            popupAnchor: [0, -16]
+        });
+
         const airportIcon = L.icon({
             iconUrl: 'https://cdn-icons-png.flaticon.com/512/2214/2214949.png',
             iconSize: [24, 24],
@@ -66,24 +712,53 @@
             popupAnchor: [0, -12]
         });
 
-        // --- 2. Estado de la Aplicación y Elementos ---
-        
-        let currentView = 'general'; // Vistas: 'general', 'detalle'
+        // Variables de estado
+        let currentView = 'general';
         const backButton = document.getElementById('backButton');
-        
-        // Guardamos marcadores por icao24 para actualizar posición
         const markersMap = {};
-        
-        // Variables para la vista de detalle
-        let detalleMarker = null; // Marcador del avión seleccionado
-        let polyline = null; // Línea de ruta
+        let detalleMarker = null;
+        let polyline = null;
         let marcadorOrigen = null;
         let marcadorDestino = null;
 
-        // --- 3. Función de Carga (Vista General) ---
+        let filterCommercial = true;
+        let filterCargo = true;
 
+        const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+        const sidebar = document.getElementById('sidebar');
+
+        toggleSidebarBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+        });
+
+        document.getElementById('filterCommercial').addEventListener('change', (e) => {
+            filterCommercial = e.target.checked;
+            actualizarVisibilidadVuelos();
+        });
+
+        document.getElementById('filterCargo').addEventListener('change', (e) => {
+            filterCargo = e.target.checked;
+            actualizarVisibilidadVuelos();
+        });
+
+        function actualizarVisibilidadVuelos() {
+            Object.keys(markersMap).forEach(icao => {
+                const marker = markersMap[icao];
+                const tipo = marker.tipo;
+                let visible = false;
+                if (tipo === 'comercial' && filterCommercial) visible = true;
+                if (tipo === 'carga' && filterCargo) visible = true;
+                
+                if (visible) {
+                    marker.marker.addTo(map);
+                } else {
+                    map.removeLayer(marker.marker);
+                }
+            });
+        }
+
+        // Cargar vuelos
         async function cargarVuelos() {
-            // Solo carga si estamos en la vista general
             if (currentView !== 'general') return;
 
             try {
@@ -96,48 +771,64 @@
                 }
 
                 const icosActuales = new Set();
+                let countCommercial = 0;
+                let countCargo = 0;
 
-                // Actualiza o crea marcadores
                 vuelos.forEach(vuelo => {
                     if (vuelo.latitude && vuelo.longitude) {
                         icosActuales.add(vuelo.icao24);
 
-                        if (markersMap[vuelo.icao24]) {
-                            // Actualiza posición del marcador existente
-                            markersMap[vuelo.icao24].setLatLng([vuelo.latitude, vuelo.longitude]);
+                        if (vuelo.type === 'carga') {
+                            countCargo++;
                         } else {
-                            // Crea marcador nuevo
-                            const marker = L.marker([vuelo.latitude, vuelo.longitude], { icon: airplaneIcon }).addTo(map);
+                            countCommercial++;
+                        }
+
+                        let selectedIcon = (vuelo.type === 'carga') ? cargoIcon : commercialIcon;
+
+                        if (markersMap[vuelo.icao24]) {
+                            markersMap[vuelo.icao24].marker.setLatLng([vuelo.latitude, vuelo.longitude]);
+                            markersMap[vuelo.icao24].marker.setIcon(selectedIcon);
+                            markersMap[vuelo.icao24].data = vuelo;
+                        } else {
+                            const marker = L.marker([vuelo.latitude, vuelo.longitude], { icon: selectedIcon }).addTo(map);
                             marker.on('click', () => mostrarDetalleVuelo(vuelo));
-                            markersMap[vuelo.icao24] = marker;
+                            markersMap[vuelo.icao24] = {
+                                marker: marker,
+                                tipo: vuelo.type,
+                                data: vuelo
+                            };
                         }
                     }
                 });
 
-                // Elimina marcadores que ya no están en datos
+                document.getElementById('totalCommercial').textContent = countCommercial;
+                document.getElementById('totalCargo').textContent = countCargo;
+                document.getElementById('totalFlights').textContent = countCommercial + countCargo;
+
+                // Remover vuelos que ya no existen
                 Object.keys(markersMap).forEach(icao => {
-                    // *** CORRECCIÓN: La lógica debe ser "si NO lo incluye" ***
-                    if (!icosActuales.has(icao)) { 
-                        map.removeLayer(markersMap[icao]);
+                    if (!icosActuales.has(icao)) {
+                        map.removeLayer(markersMap[icao].marker);
                         delete markersMap[icao];
                     }
                 });
+
+                actualizarVisibilidadVuelos();
                 
             } catch (error) {
                 console.error('Error cargando vuelos:', error);
             }
         }
 
-        // --- 4. Función de Vista de Detalle ---
-
         async function mostrarDetalleVuelo(vuelo) {
             currentView = 'detalle';
-            backButton.style.display = 'block';
+            backButton.classList.add('active');
 
-            // Oculta todos los marcadores generales
-            Object.values(markersMap).forEach(marker => map.removeLayer(marker));
+            // Ocultar marcadores generales
+            Object.values(markersMap).forEach(m => map.removeLayer(m.marker));
 
-            // Limpia polilínea y marcadores de ruta si existen
+            // Limpiar ruta anterior
             if (polyline) {
                 map.removeLayer(polyline);
                 polyline = null;
@@ -150,31 +841,33 @@
                 map.removeLayer(marcadorDestino);
                 marcadorDestino = null;
             }
-            
-            // Limpia el marcador de detalle anterior (si lo hay)
             if (detalleMarker) {
                 map.removeLayer(detalleMarker);
                 detalleMarker = null;
             }
 
-            // Centra mapa en posición actual del vuelo
+            // Centrar mapa y mostrar marcador
             map.setView([vuelo.latitude, vuelo.longitude], 8);
 
-            // Marcador del avión actual
-            detalleMarker = L.marker([vuelo.latitude, vuelo.longitude], { icon: airplaneIcon })
-                .addTo(map)
-                .bindPopup(`
-                    <b>Callsign:</b> ${vuelo.callsign || 'N/A'}<br>
-                    <b>Origen País:</b> ${vuelo.origin_country || 'N/A'}<br>
-                    <b>Latitud:</b> ${vuelo.latitude.toFixed(4)}<br>
-                    <b>Longitud:</b> ${vuelo.longitude.toFixed(4)}<br>
-                    <b>Altitud:</b> ${vuelo.altitude || 'N/A'} ft<br>
-                    <b>Velocidad:</b> ${vuelo.velocity || 'N/A'} knots<br>
-                    <b>Heading:</b> ${vuelo.heading || 'N/A'}°
-                `)
-                .openPopup();
-            
-            // Obtener ruta origen-destino o solo origen y posición actual
+            let selectedIcon = (vuelo.type === 'carga') ? cargoIcon : commercialIcon;
+            detalleMarker = L.marker([vuelo.latitude, vuelo.longitude], { icon: selectedIcon }).addTo(map);
+
+            // Llenar modal con datos
+            document.getElementById('modalCallsign').textContent = vuelo.callsign || 'N/A';
+            document.getElementById('modalType').innerHTML = `<span class="badge ${vuelo.type === 'carga' ? 'badge-cargo' : 'badge-commercial'}">${vuelo.type.toUpperCase()}</span>`;
+            document.getElementById('modalCountry').textContent = vuelo.origin_country || 'N/A';
+            document.getElementById('modalIcao24').textContent = vuelo.icao24;
+            document.getElementById('modalLatitude').textContent = vuelo.latitude.toFixed(4);
+            document.getElementById('modalLongitude').textContent = vuelo.longitude.toFixed(4);
+            document.getElementById('modalAltitude').textContent = (vuelo.altitude || 'N/A') + ' ft';
+            document.getElementById('modalVelocity').textContent = (vuelo.velocity || 'N/A') + ' knots';
+            document.getElementById('modalHeading').textContent = (vuelo.heading || 'N/A') + '°';
+
+            // Mostrar modal
+            const flightModal = new bootstrap.Modal(document.getElementById('flightModal'));
+            flightModal.show();
+
+            // Obtener ruta
             try {
                 const resp = await fetch(`/ruta_vuelo/${vuelo.icao24}`);
                 if (!resp.ok) throw new Error("Ruta no encontrada");
@@ -194,27 +887,21 @@
                         .bindPopup(`Aeropuerto Destino: ${data.estArrivalAirport}`)
                         .addTo(map);
                     
-                    // Ruta completa
-                    polyline = L.polyline([origenCoord, destinoCoord], { color: 'blue', weight: 3 }).addTo(map);
-
+                    polyline = L.polyline([origenCoord, destinoCoord], { color: '#0d6efd', weight: 3 }).addTo(map);
                 } else if (origenCoord) {
-                    // Solo origen, dibuja línea hasta posición actual del avión
                     const posicionActual = [vuelo.latitude, vuelo.longitude];
-                    polyline = L.polyline([origenCoord, posicionActual], { color: 'blue', weight: 3, dashArray: '5, 10' }).addTo(map);
+                    polyline = L.polyline([origenCoord, posicionActual], { color: '#0d6efd', weight: 3, dashArray: '5, 10' }).addTo(map);
                 }
-                
             } catch (error) {
                 console.warn("No se pudo cargar la ruta:", error);
             }
         }
-        
-        // --- 5. Event Listener del Botón "Volver" ---
 
+        // Back button
         backButton.addEventListener('click', () => {
             currentView = 'general';
-            backButton.style.display = 'none';
+            backButton.classList.remove('active');
 
-            // Remover marcador detalle y ruta
             if (detalleMarker) {
                 map.removeLayer(detalleMarker);
                 detalleMarker = null;
@@ -232,21 +919,14 @@
                 marcadorDestino = null;
             }
 
-            // Mostrar marcadores generales
-            Object.values(markersMap).forEach(marker => marker.addTo(map));
-            
-            // Resetear vista
-            map.setView([centerLat, centerLng], 5);
-            
-            // Cargar vuelos inmediatamente para refrescar
+            Object.values(markersMap).forEach(m => m.marker.addTo(map));
+            map.setView([centerLat, centerLng], 11);
             cargarVuelos();
         });
 
-        // --- 6. Carga Inicial y Actualización ---
-        
+        // Initial load and updates
         cargarVuelos();
-        setInterval(cargarVuelos, 3000); // Actualización cada 3 segundos
-
+        setInterval(cargarVuelos, 3000);
     </script>
 </body>
 </html>
