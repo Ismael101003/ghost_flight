@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <title>Mapa de vuelos en México</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    
+    <style>
+        /* Estilos del mapa y botón */
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        #backButton {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #ccc;
+            padding: 8px 12px;
+            cursor: pointer;
+            display: none;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+    <button id="backButton">&larr; Vista General</button>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // --- 1. Configuración del Mapa e Iconos ---
+        
+        const centerLat = 23.6345;
+        const centerLng = -102.5528;
+        
+        const map = L.map('map').setView([centerLat, centerLng], 5);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Icono de avión
+        const airplaneIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/8111/8111822.png',
+            iconSize: [32, 32],
+            iconAnchor: [16, 16],
+            popupAnchor: [0, -16]
+        });
+
+        // Icono de aeropuerto
+        const airportIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/2214/2214949.png',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+            popupAnchor: [0, -12]
+        });
+
+        // --- 2. Estado de la Aplicación y Elementos ---
+        
+        let currentView = 'general'; // Vistas: 'general', 'detalle'
+        const backButton = document.getElementById('backButton');
+        
+        // Guardamos marcadores por icao24 para actualizar posición
+        const markersMap = {};
+        
+        // Variables para la vista de detalle
+        let detalleMarker = null; // Marcador del avión seleccionado
+        let polyline = null; // Línea de ruta
+        let marcadorOrigen = null;
+        let marcadorDestino = null;
+
+        // --- 3. Función de Carga (Vista General) ---
+
+        async function cargarVuelos() {
+            // Solo carga si estamos en la vista general
+            if (currentView !== 'general') return;
+
+            try {
+                const response = await fetch('/vuelos');
+                const vuelos = await response.json();
+
+                if (vuelos.error) {
+                    console.warn(vuelos.error);
+                    return;
+                }
+
+                const icosActuales = new Set();
+
+                // Actualiza o crea marcadores
+                vuelos.forEach(vuelo => {
+                    if (vuelo.latitude && vuelo.longitude) {
+                        icosActuales.add(vuelo.icao24);
+
+                        if (markersMap[vuelo.icao24]) {
+                            // Actualiza posición del marcador existente
+                            markersMap[vuelo.icao24].setLatLng([vuelo.latitude, vuelo.longitude]);
+                        } else {
+                            // Crea marcador nuevo
+                            const marker = L.marker([vuelo.latitude, vuelo.longitude], { icon: airplaneIcon }).addTo(map);
+                            marker.on('click', () => mostrarDetalleVuelo(vuelo));
+                            markersMap[vuelo.icao24] = marker;
+                        }
+                    }
+                });
+
+                // Elimina marcadores que ya no están en datos
+                Object.keys(markersMap).forEach(icao => {
+                    // *** CORRECCIÓN: La lógica debe ser "si NO lo incluye" ***
+                    if (!icosActuales.has(icao)) { 
+                        map.removeLayer(markersMap[icao]);
+                        delete markersMap[icao];
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error cargando vuelos:', error);
+            }
+        }
+
+        // --- 4. Función de Vista de Detalle ---
+
+        async function mostrarDetalleVuelo(vuelo) {
+            currentView = 'detalle';
+            backButton.style.display = 'block';
+
+            // Oculta todos los marcadores generales
+            Object.values(markersMap).forEach(marker => map.removeLayer(marker));
+
+            // Limpia polilínea y marcadores de ruta si existen
+            if (polyline) {
+                map.removeLayer(polyline);
+                polyline = null;
+            }
+            if (marcadorOrigen) {
+                map.removeLayer(marcadorOrigen);
+                marcadorOrigen = null;
+            }
+            if (marcadorDestino) {
+                map.removeLayer(marcadorDestino);
+                marcadorDestino = null;
+            }
+            
+            // Limpia el marcador de detalle anterior (si lo hay)
+            if (detalleMarker) {
+                map.removeLayer(detalleMarker);
+                detalleMarker = null;
+            }
+
+            // Centra mapa en posición actual del vuelo
+            map.setView([vuelo.latitude, vuelo.longitude], 8);
+
+            // Marcador del avión actual
+            detalleMarker = L.marker([vuelo.latitude, vuelo.longitude], { icon: airplaneIcon })
+                .addTo(map)
+                .bindPopup(`
+                    <b>Callsign:</b> ${vuelo.callsign || 'N/A'}<br>
+                    <b>Origen País:</b> ${vuelo.origin_country || 'N/A'}<br>
+                    <b>Latitud:</b> ${vuelo.latitude.toFixed(4)}<br>
+                    <b>Longitud:</b> ${vuelo.longitude.toFixed(4)}<br>
+                    <b>Altitud:</b> ${vuelo.altitude || 'N/A'} ft<br>
+                    <b>Velocidad:</b> ${vuelo.velocity || 'N/A'} knots<br>
+                    <b>Heading:</b> ${vuelo.heading || 'N/A'}°
+                `)
+                .openPopup();
+            
+            // Obtener ruta origen-destino o solo origen y posición actual
+            try {
+                const resp = await fetch(`/ruta_vuelo/${vuelo.icao24}`);
+                if (!resp.ok) throw new Error("Ruta no encontrada");
+                const data = await resp.json();
+
+                let origenCoord = null;
+                if (data.origen) {
+                    origenCoord = [data.origen.lat, data.origen.lng];
+                    marcadorOrigen = L.marker(origenCoord, { icon: airportIcon })
+                        .bindPopup(`Aeropuerto Origen: ${data.estDepartureAirport}`)
+                        .addTo(map);
+                }
+
+                if (data.destino) {
+                    const destinoCoord = [data.destino.lat, data.destino.lng];
+                    marcadorDestino = L.marker(destinoCoord, { icon: airportIcon })
+                        .bindPopup(`Aeropuerto Destino: ${data.estArrivalAirport}`)
+                        .addTo(map);
+                    
+                    // Ruta completa
+                    polyline = L.polyline([origenCoord, destinoCoord], { color: 'blue', weight: 3 }).addTo(map);
+
+                } else if (origenCoord) {
+                    // Solo origen, dibuja línea hasta posición actual del avión
+                    const posicionActual = [vuelo.latitude, vuelo.longitude];
+                    polyline = L.polyline([origenCoord, posicionActual], { color: 'blue', weight: 3, dashArray: '5, 10' }).addTo(map);
+                }
+                
+            } catch (error) {
+                console.warn("No se pudo cargar la ruta:", error);
+            }
+        }
+        
+        // --- 5. Event Listener del Botón "Volver" ---
+
+        backButton.addEventListener('click', () => {
+            currentView = 'general';
+            backButton.style.display = 'none';
+
+            // Remover marcador detalle y ruta
+            if (detalleMarker) {
+                map.removeLayer(detalleMarker);
+                detalleMarker = null;
+            }
+            if (polyline) {
+                map.removeLayer(polyline);
+                polyline = null;
+            }
+            if (marcadorOrigen) {
+                map.removeLayer(marcadorOrigen);
+                marcadorOrigen = null;
+            }
+            if (marcadorDestino) {
+                map.removeLayer(marcadorDestino);
+                marcadorDestino = null;
+            }
+
+            // Mostrar marcadores generales
+            Object.values(markersMap).forEach(marker => marker.addTo(map));
+            
+            // Resetear vista
+            map.setView([centerLat, centerLng], 5);
+            
+            // Cargar vuelos inmediatamente para refrescar
+            cargarVuelos();
+        });
+
+        // --- 6. Carga Inicial y Actualización ---
+        
+        cargarVuelos();
+        setInterval(cargarVuelos, 3000); // Actualización cada 3 segundos
+
+    </script>
+</body>
+</html>
